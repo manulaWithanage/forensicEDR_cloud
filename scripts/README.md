@@ -62,13 +62,6 @@ python scripts/test_db_connection_v2.py
 
 **Use case:** Quick connectivity check before running other scripts.
 
-### `sample_upload.py`
-Legacy upload test (kept for reference).
-
-```bash
-python scripts/sample_upload.py
-```
-
 ## Script Dependencies
 
 All scripts require:
