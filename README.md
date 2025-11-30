@@ -1,229 +1,232 @@
 # ForensicEDR Cloud Backend
 
-Production-ready cloud backend system for ForensicEDR that receives crash data from edge devices, stores in MongoDB, and generates analytical reports.
+A production-ready cloud backend for vehicle crash forensic evidence management, featuring secure data handling, blockchain-inspired custody chains, and real-time analytics.
 
-## 🏗️ Architecture
+## 🚀 Features
 
-```
-Edge Device → FastAPI Backend → MongoDB
-                    ↓
-            Plotly Reports
-```
+- **Secure Evidence Upload**: AES-256-GCM encryption for crash data
+- **Blockchain-Inspired Custody Chain**: SHA-256 hash chain for tamper detection
+- **Geospatial Queries**: MongoDB 2dsphere indexing for location-based searches
+- **Real-time Analytics**: Plotly-powered report generation with caching
+- **RESTful API**: FastAPI with automatic OpenAPI documentation
+- **Cloud-Ready**: Configured for Render.com deployment
 
-## 🚀 Quick Start
+## 📋 Prerequisites
 
-### Prerequisites
-- Python 3.9+
-- MongoDB URI (Atlas or local instance)
-- AES-256 encryption key
+- Python 3.11+
+- MongoDB Atlas account (or local MongoDB)
+- Git
 
-### Installation
+## 🛠️ Installation
 
-1. **Clone and navigate to project:**
+### 1. Clone the Repository
+
 ```bash
+git clone https://github.com/manulaWithanage/forensicEDR_cloud.git
 cd ForensicEDR_Cloud_Backend
 ```
 
-2. **Create virtual environment:**
+### 2. Create Virtual Environment
+
 ```bash
 python -m venv venv
-# Windows
-venv\Scripts\activate
-# Linux/Mac
-source venv/bin/activate
+source venv/bin/activate  # On Windows: venv\Scripts\activate
 ```
 
-3. **Install dependencies:**
+### 3. Install Dependencies
+
 ```bash
 pip install -r requirements.txt
 ```
 
-4. **Configure environment:**
-```bash
-cp .env.example .env
-# Edit .env with your MongoDB URI and encryption key
+### 4. Configure Environment
+
+Copy `.env.example` to `.env` and update:
+
+```env
+MONGODB_URI=your_mongodb_connection_string
+AES_ENCRYPTION_KEY=your_64_char_hex_key
 ```
 
-5. **Initialize database:**
+Generate encryption key:
+```bash
+python -c "import secrets; print(secrets.token_hex(32))"
+```
+
+### 5. Initialize Database
+
 ```bash
 python scripts/setup_db.py
 ```
 
-6. **Run development server:**
-```bash
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-```
+## 🚦 Running the Server
 
-API available at: http://localhost:8000
-
-Interactive docs at: http://localhost:8000/docs
-
----
-
-## 🐳 Docker Deployment
-
-### Production deployment with Docker Compose:
+### Development
 
 ```bash
-# Build and start services
-docker-compose up -d
-
-# View logs
-docker-compose logs -f api
-
-# Stop services
-docker-compose down
+python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
----
+### Production
 
-## 📊 API Endpoints
+```bash
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
+```
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/health` | GET | Health check with MongoDB status |
-| `/api/v1/upload/evidence` | POST | Upload encrypted crash evidence |
-| `/api/v1/crashes` | GET | Query crash events with filters |
-| `/api/v1/crashes/{event_id}` | GET | Get specific crash details |
-| `/api/v1/crashes/nearby` | GET | Geospatial search for crashes |
-| `/api/v1/reports/generate` | GET | Generate analytical reports |
-| `/api/v1/custody/{event_id}` | GET | Get custody chain with verification |
+Access the API documentation at: `http://localhost:8000/docs`
 
-See [API_DOCS.md](API_DOCS.md) for detailed documentation.
+## 📡 API Endpoints
 
----
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/health` | System health check |
+| POST | `/api/v1/upload/evidence` | Upload encrypted crash evidence |
+| GET | `/api/v1/crashes` | List crashes (with filters) |
+| GET | `/api/v1/crashes/{event_id}` | Get crash details |
+| GET | `/api/v1/crashes/nearby` | Geospatial search |
+| GET | `/api/v1/custody/{event_id}` | Verify custody chain |
+| GET | `/api/v1/reports/generate` | Generate analytics report |
+| GET | `/api/v1/reports/cached/recent` | Get recent cached reports |
+| GET | `/api/v1/reports/{report_id}` | Get cached report by ID |
 
 ## 🧪 Testing
 
-### Run test suite:
+### Run Test Suite
+
 ```bash
 pytest tests/ -v
 ```
 
-### Test evidence upload:
+### Test Upload Endpoint
+
 ```bash
-python scripts/sample_upload.py
+python scripts/test_upload_v2.py
 ```
 
-### Test specific endpoint:
+### Populate Sample Data
+
 ```bash
-curl http://localhost:8000/health
-curl "http://localhost:8000/api/v1/crashes?severity=severe&limit=10"
+python scripts/populate_db.py
 ```
 
----
+### Clean Database
 
-## 🗄️ MongoDB Collections
+```bash
+python scripts/clean_db.py
+```
 
-1. **crash_events** - Crash metadata with GeoJSON location
-2. **raw_telemetry** - 60-second sensor buffer data
-3. **evidence_custody_logs** - Blockchain-style custody chain
+## 📦 Project Structure
 
-### Required Indexes:
-- `crash_events.location` (2dsphere) for geospatial queries
-- `crash_events.event_id` (unique)
-- `evidence_custody_logs.entry_hash` (unique)
-
----
-
-## 🔐 Security Features
-
-- **AES-256-GCM** encryption for evidence files
-- **SHA-256** blockchain-style custody chain
-- **TLS 1.3** recommended for production
-- **ISO 27037** and **NIST SP 800-86** compliant
-
----
-
-## 📈 Report Types
-
-1. **Severity Distribution** - Pie chart of crash severity levels
-2. **Crashes Over Time** - Timeline analysis
-3. **Geographic Distribution** - Map with crash locations
-4. **Crash Type Breakdown** - Bar chart by crash type
-5. **Impact Force Analysis** - Scatter plot correlation
-
----
-
-## 🛠️ Development
-
-### Project Structure:
 ```
 ForensicEDR_Cloud_Backend/
 ├── app/
+│   ├── __init__.py
 │   ├── main.py              # FastAPI application
+│   ├── config.py            # Configuration management
 │   ├── database.py          # MongoDB connection
 │   ├── models.py            # Pydantic models
-│   ├── encryption.py        # AES-256-GCM utilities
-│   ├── custody_chain.py     # Hash chain manager
-│   ├── report_generator.py  # Plotly visualizations
-│   └── config.py            # Configuration
+│   ├── encryption.py        # AES-256-GCM encryption
+│   ├── custody_chain.py     # SHA-256 hash chain
+│   └── report_generator.py # Plotly analytics
 ├── scripts/
 │   ├── setup_db.py          # Database initialization
-│   └── sample_upload.py     # Test data generator
+│   ├── populate_db.py       # Sample data generator
+│   ├── clean_db.py          # Database cleanup
+│   └── test_upload_v2.py    # Upload verification
 ├── tests/
 │   └── test_api.py          # API tests
-├── requirements.txt
-├── .env.example
-├── Dockerfile
-└── docker-compose.yml
+├── .env.example             # Environment template
+├── requirements.txt         # Python dependencies
+├── Dockerfile              # Docker configuration
+├── docker-compose.yml      # Docker Compose setup
+└── render.yaml             # Render deployment config
 ```
 
----
+## 🔐 Security Features
 
-## 📝 Environment Variables
+### Encryption
+- **Algorithm**: AES-256-GCM
+- **Key Management**: Environment variable-based
+- **Data Format**: Nonce (12 bytes) + Tag (16 bytes) + Ciphertext
 
-Required in `.env`:
+### Custody Chain
+- **Hash Algorithm**: SHA-256
+- **Chain Structure**: Each entry links to previous via hash
+- **Tamper Detection**: Automatic verification on retrieval
+- **Edge-to-Cloud**: Preserves custody from device to cloud
+
+## 🌐 Deployment
+
+### Render.com (Recommended)
+
+1. Push code to GitHub
+2. Create new Web Service on Render
+3. Connect repository
+4. Set environment variables
+5. Deploy
+
+See [RENDER_DEPLOYMENT.md](RENDER_DEPLOYMENT.md) for detailed instructions.
+
+### Docker
+
+```bash
+docker-compose up -d
 ```
-MONGODB_URI=mongodb+srv://user:pass@cluster.mongodb.net/forensic_edr
-AES_ENCRYPTION_KEY=<64-character hex string>
-API_SECRET_KEY=<your-secret-key>
-HOST=0.0.0.0
-PORT=8000
-LOG_LEVEL=INFO
-CORS_ORIGINS=*
+
+## 📊 Data Models
+
+### Crash Event
+```json
+{
+  "event_id": "evt_20251130_001",
+  "timestamp": "2025-11-30T10:30:00Z",
+  "crash_type": "frontal_impact_collision",
+  "severity": "severe",
+  "location": {
+    "type": "Point",
+    "coordinates": [79.8612, 6.9271],
+    "address": "Colombo, Sri Lanka"
+  },
+  "calculated_values": {
+    "impact_force_g": 4.5,
+    "deceleration": -65.5,
+    "speed_previous": 80.0
+  }
+}
 ```
 
-Generate encryption key:
-```python
-import secrets
-print(secrets.token_hex(32))  # 32 bytes = 64 hex chars
+### Custody Log
+```json
+{
+  "entry_id": "log_001",
+  "event_id": "evt_20251130_001",
+  "action": "EVIDENCE_COLLECTION",
+  "actor": "EDGE_DEVICE_V2",
+  "timestamp": "2025-11-30T10:30:00Z",
+  "previous_hash": "0000...0000",
+  "entry_hash": "a1b2c3d4..."
+}
 ```
 
----
+## 🤝 Contributing
 
-## 🚨 Troubleshooting
+1. Fork the repository
+2. Create feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit changes (`git commit -m 'Add AmazingFeature'`)
+4. Push to branch (`git push origin feature/AmazingFeature`)
+5. Open Pull Request
 
-**MongoDB connection fails:**
-- Check MONGODB_URI in .env
-- Verify network connectivity
-- Ensure IP whitelist in MongoDB Atlas
+## 📝 License
 
-**Decryption errors:**
-- Verify AES_ENCRYPTION_KEY matches edge device key
-- Check .bin file format (12-byte nonce + 16-byte tag + ciphertext)
+This project is licensed under the MIT License.
 
-**Geospatial queries fail:**
-- Ensure 2dsphere index exists: `python scripts/setup_db.py`
-- Verify GeoJSON format: `{type: "Point", coordinates: [lng, lat]}`
+## 👥 Authors
 
----
+- **Manula Withanage** - [GitHub](https://github.com/manulaWithanage)
 
-## 📚 Standards Compliance
+## 🙏 Acknowledgments
 
-- **ISO/IEC 27037:2012** - Digital evidence identification and preservation
-- **NIST SP 800-86** - Guide to Integrating Forensic Techniques
-- **FIPS 180-4** - SHA-256 hash function
-- **NIST SP 800-38D** - AES-GCM encryption
-
----
-
-## 📄 License
-
-ForensicEDR Cloud Backend © 2024
-
----
-
-## 🤝 Support
-
-For issues and questions, refer to [API_DOCS.md](API_DOCS.md) for detailed endpoint documentation.
+- FastAPI for the excellent web framework
+- MongoDB for flexible data storage
+- Plotly for powerful visualizations
+- Render.com for seamless deployment
