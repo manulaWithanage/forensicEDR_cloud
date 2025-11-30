@@ -51,16 +51,16 @@ class Location(BaseModel):
 
 # Crash Event Models
 class CalculatedValues(BaseModel):
-    speed_now: float
+    speed_now: Optional[float] = None
     speed_previous: Optional[float] = None
     deceleration: Optional[float] = None
-    total_acceleration: float
-    angular_acceleration: float
-    hard_brake_event: str
-    airbag_status: str
-    power_status: str
-    tilt: float
-    impact_force_g: float
+    total_acceleration: Optional[float] = None
+    angular_acceleration: Optional[float] = None
+    hard_brake_event: Optional[str] = None
+    airbag_status: Optional[str] = None
+    power_status: Optional[str] = None
+    tilt: Optional[float] = None
+    impact_force_g: Optional[float] = None
 
 
 class Metadata(BaseModel):
