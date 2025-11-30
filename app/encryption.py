@@ -1,5 +1,6 @@
 """AES-256-GCM encryption and decryption utilities"""
 import json
+import os
 from Crypto.Cipher import AES
 from .config import settings
 
@@ -68,14 +69,17 @@ def encrypt_evidence(data: dict) -> bytes:
         # Get AES key
         aes_key = settings.get_aes_key_bytes()
         
+        # Generate 12-byte nonce (standard for GCM)
+        nonce = os.urandom(12)
+        
         # Create cipher
-        cipher = AES.new(aes_key, AES.MODE_GCM)
+        cipher = AES.new(aes_key, AES.MODE_GCM, nonce=nonce)
         
         # Encrypt and get tag
         ciphertext, tag = cipher.encrypt_and_digest(plaintext)
         
         # Combine: nonce (12) + tag (16) + ciphertext
-        encrypted_data = cipher.nonce + tag + ciphertext
+        encrypted_data = nonce + tag + ciphertext
         
         return encrypted_data
         

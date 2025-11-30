@@ -1,10 +1,11 @@
 """FastAPI application with 7 endpoints for ForensicEDR Cloud Backend"""
-from fastapi import FastAPI, File, UploadFile, HTTPException, Query, Depends
+from fastapi import FastAPI, File, UploadFile, HTTPException, Query, Depends, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from datetime import datetime
 from typing import Optional, List
 import logging
+import json
 
 from .config import settings
 from .database import (
@@ -103,16 +104,21 @@ async def health_check():
 # ENDPOINT 2: Upload Evidence
 # ============================================================================
 @app.post("/api/v1/upload/evidence", response_model=UploadResponse, tags=["Evidence"])
-async def upload_evidence(file: UploadFile = File(...)):
+async def upload_evidence(
+    file: UploadFile = File(...),
+    custody_log: Optional[str] = Form(None)
+):
     """
     Upload encrypted crash evidence from edge device
     
     - Decrypts AES-256-GCM encrypted .bin file
     - Stores in MongoDB (crash_events + raw_telemetry)
-    - Creates custody log entry
+    - Processes edge device custody log (if provided)
+    - Creates cloud receipt custody log entry
     
     Args:
         file: Encrypted .bin file (multipart/form-data)
+        custody_log: JSON string of edge device custody log (optional)
         
     Returns:
         UploadResponse with event_id and timestamp
@@ -161,8 +167,31 @@ async def upload_evidence(file: UploadFile = File(...)):
             }
             await db.raw_telemetry.insert_one(telemetry_doc)
             logger.info(f"✅ Stored telemetry data for: {event_id}")
+            
+        # Process Edge Device Custody Log
+        if custody_log:
+            try:
+                edge_log_data = json.loads(custody_log)
+                
+                # Ensure timestamp is datetime
+                if isinstance(edge_log_data.get('timestamp'), str):
+                    edge_log_data['timestamp'] = datetime.fromisoformat(edge_log_data['timestamp'].replace('Z', '+00:00'))
+                
+                # Insert into database
+                # Note: We use try/except for duplicate key errors if retry happens
+                try:
+                    await db.evidence_custody_logs.insert_one(edge_log_data)
+                    logger.info(f"✅ Stored edge custody log: {edge_log_data.get('entry_id')}")
+                except Exception as e:
+                    logger.warning(f"Could not store edge log (might exist): {e}")
+                    
+            except json.JSONDecodeError:
+                logger.error("Failed to parse custody_log JSON string")
+            except Exception as e:
+                logger.error(f"Error processing edge custody log: {e}")
         
-        # Create custody log entry
+        # Create Cloud Receipt Custody Log
+        # This will automatically link to the edge log we just inserted (if timestamps are correct)
         custody_manager = CustodyChainManager(db)
         await custody_manager.add_custody_entry(
             event_id=event_id,
@@ -173,11 +202,12 @@ async def upload_evidence(file: UploadFile = File(...)):
                 'upload_info': {
                     'filename': file.filename,
                     'file_size': len(encrypted_data),
-                    'content_type': file.content_type
+                    'content_type': file.content_type,
+                    'edge_log_received': bool(custody_log)
                 }
             }
         )
-        logger.info(f"✅ Created custody log for: {event_id}")
+        logger.info(f"✅ Created cloud custody log for: {event_id}")
         
         return UploadResponse(
             status="success",
