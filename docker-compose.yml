@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  # FastAPI Backend
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - MONGODB_URI=${MONGODB_URI}
+      - AES_ENCRYPTION_KEY=${AES_ENCRYPTION_KEY}
+      - API_SECRET_KEY=${API_SECRET_KEY}
+      - HOST=0.0.0.0
+      - PORT=8000
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - CORS_ORIGINS=${CORS_ORIGINS:-*}
+    depends_on:
+      - mongodb
+    restart: unless-stopped
+    volumes:
+      - ./app:/app/app:ro
+    networks:
+      - forensic_network
+
+  # MongoDB (for local development)
+  mongodb:
+    image: mongo:7.0
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_DATABASE=forensic_edr
+    volumes:
+      - mongodb_data:/data/db
+    restart: unless-stopped
+    networks:
+      - forensic_network
+
+volumes:
+  mongodb_data:
+    driver: local
+
+networks:
+  forensic_network:
+    driver: bridge
