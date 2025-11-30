@@ -4,6 +4,7 @@ from pymongo import ASCENDING, DESCENDING, GEOSPHERE
 from pymongo.errors import CollectionInvalid
 from .config import settings
 import logging
+import certifi
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +23,11 @@ database = Database()
 async def connect_to_mongodb():
     """Connect to MongoDB and initialize database"""
     logger.info("Connecting to MongoDB...")
-    database.client = AsyncIOMotorClient(settings.MONGODB_URI)
+    # Use certifi for SSL certificate verification to prevent handshake errors
+    database.client = AsyncIOMotorClient(
+        settings.MONGODB_URI,
+        tlsCAFile=certifi.where()
+    )
     database.db = database.client.forensic_edr
     logger.info("✅ Connected to MongoDB")
 
